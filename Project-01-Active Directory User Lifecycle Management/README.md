@@ -1,279 +1,410 @@
-# Active Directory User Lifecycle Management
+# Active Directory User Lifecycle Management Using PowerShell
 
-## Project Overview
+## 1. Project Overview
 
-This project demonstrates practical Identity and Access Management (IAM) operations using Microsoft Active Directory Domain Services (AD DS) and PowerShell.
+### Objective
 
-The objective was to simulate common IAM helpdesk and identity administration responsibilities in a virtual lab environment.
+The objective of this project is to implement and troubleshoot common Identity and Access Management (IAM) operations using Microsoft Active Directory Domain Services (AD DS) and Windows PowerShell.
 
-The project covers the Joiner-Mover-Leaver (JML) lifecycle, password management, account lockout troubleshooting, and Active Directory group membership administration.
+A virtual enterprise environment was configured to simulate identity administration tasks commonly performed by IAM Operations, Active Directory Administrators, and IT Helpdesk teams.
 
-## Lab Environment
+The project focuses on managing user identities throughout their lifecycle, controlling group-based access, handling password-related requests, and troubleshooting account lockouts.
+
+### Scope
+
+The following operations were implemented:
+
+1. Joiner – New employee account provisioning.
+2. Mover – Department transfer and access modification.
+3. Leaver – Employee offboarding and access revocation.
+4. Password Management – Administrative password reset.
+5. Account Management – Enable and disable accounts.
+6. Account Lockout – Investigate failed authentication and unlock accounts.
+7. Security Policy – Inspect, temporarily modify, and restore domain lockout policy.
+
+**Implementation approach:** All operations were first performed manually using individual PowerShell cmdlets to understand the underlying AD administration process before introducing automation.
+
+---
+
+## 2. Lab Architecture
+
+### Environment Configuration
 
 | Component | Configuration |
 |---|---|
 | Domain Controller | DC01 |
 | Client Machine | WIN10-CLIENT |
-| Server OS | Windows Server |
-| Client OS | Windows 10 Pro |
-| Domain | corp.example.com |
-| NetBIOS | CORP |
+| Server Operating System | Windows Server |
+| Client Operating System | Windows 10 Pro |
+| Domain Name | corp.example.com |
+| NetBIOS Name | CORP |
 | Domain Controller IP | 192.168.10.10 |
 | Client IP | 192.168.10.20 |
 | Virtual Network | IAM-LAB |
-| Administration | PowerShell / Active Directory Module |
+| Administration Tool | Windows PowerShell |
+| PowerShell Module | ActiveDirectory |
 
-## 1. Joiner Process – New Employee Provisioning
+### Lab Design
 
-### Scenario
-A new employee, Meera Sharma, joins the HR department.
+- DC01 hosts Active Directory Domain Services and DNS.
+- WIN10-CLIENT is joined to the `corp.example.com` domain.
+- Both virtual machines communicate through the VirtualBox internal network named `IAM-LAB`.
+- User accounts, organisational units, and security groups are managed through DC01.
+- Client-side authentication is tested from WIN10-CLIENT.
 
-### Tasks performed
-- Checked whether the username already existed.
-- Verified the target OU and security group.
-- Created the Active Directory user.
-- Configured the username and UPN.
-- Set an initial password using a SecureString.
-- Moved the user into the HR OU.
-- Configured password change at next logon.
-- Enabled the account.
-- Added the user to the HR_Users security group.
-- Verified account attributes and group membership.
+### Active Directory Structure
 
-### PowerShell commands
+```text
+corp.example.com
+│
+├── Domain Controllers
+│
+├── Finance
+│   ├── arun.kumar
+│   ├── rahul.kumar
+│   └── meera.sharma (after transfer)
+│
+├── HR
+│   ├── priya.kumari
+│   └── leaver.test (disabled)
+│
+└── IT
+    └── karthik.kumar
+```
+
+### Security Groups
+
+| Group | Scope | Category | Purpose |
+|---|---|---|---|
+| Finance_Read | Global | Security | Read access to Finance resources |
+| HR_Users | Global | Security | HR department access |
+| IT_Support | Global | Security | IT support access |
+
+### Initial Environment Validation
+
+The AD PowerShell module was checked and imported.
 
 ```powershell
-New-ADUser -Name "Meera Sharma" `
+Get-Module -ListAvailable ActiveDirectory
+
+Import-Module ActiveDirectory
+
+Get-ADDomain
+```
+
+Domain connectivity was checked from the client.
+
+```powershell
+$env:LOGONSERVER
+
+whoami
+
+nltest /dsgetdc:corp.example.com
+```
+
+The client successfully identified DC01 as its domain controller.
+
+---
+
+## 3. Joiner – New Employee Provisioning
+
+### Business Scenario
+
+A new employee named Meera Sharma joins the HR department.
+
+The IAM administrator receives an approved onboarding request and must create the employee's identity with the appropriate attributes and department access.
+
+### Provisioning Requirements
+
+| Attribute | Required Value |
+|---|---|
+| Employee Name | Meera Sharma |
+| Username | meera.sharma |
+| UPN | meera.sharma@corp.example.com |
+| Department | HR |
+| Target OU | HR |
+| Security Group | HR_Users |
+| Account Status | Enabled |
+| Initial Password | Securely supplied |
+
+### Step 1: Validate Existing Identity and Target Resources
+
+Before creating the account, verify whether the username already exists.
+
+```powershell
+Get-ADUser -Filter "SamAccountName -eq 'meera.sharma'"
+```
+
+Verify the target OU and security group.
+
+```powershell
+Get-ADOrganizationalUnit -Identity "OU=HR,DC=corp,DC=example,DC=com"
+
+Get-ADGroup -Identity "HR_Users"
+```
+
+**Why is this necessary?**
+
+- Prevents duplicate identity creation.
+- Confirms the destination OU exists.
+- Confirms the required security group is available.
+- Reduces provisioning errors.
+
+### Step 2: Collect the Initial Password Securely
+
+```powershell
+$Password = Read-Host "Enter temporary password" -AsSecureString
+```
+
+`Read-Host` collects the password interactively, while `-AsSecureString` prevents the password from being displayed as ordinary plaintext input.
+
+Passwords should not be hardcoded in scripts or committed to GitHub.
+
+### Step 3: Create the AD Account
+
+```powershell
+New-ADUser `
+-Name "Meera Sharma" `
 -SamAccountName "meera.sharma" `
 -UserPrincipalName "meera.sharma@corp.example.com" `
 -Path "OU=HR,DC=corp,DC=example,DC=com" `
 -AccountPassword $Password `
 -Enabled $false
+```
 
-Set-ADUser -Identity "Meera Sharma" `
+The account is initially created disabled so that the administrator can complete the remaining provisioning checks before enabling it.
+
+### Step 4: Configure Identity Attributes
+
+```powershell
+Set-ADUser -Identity "meera.sharma" `
 -SamAccountName "meera.sharma" `
 -UserPrincipalName "meera.sharma@corp.example.com"
+```
 
-Move-ADObject -Identity (Get-ADUser "meera.sharma").DistinguishedName `
--TargetPath "OU=HR,DC=corp,DC=example,DC=com"
+The Department attribute is populated separately.
 
+```powershell
+Set-ADUser -Identity "meera.sharma" -Department "HR"
+```
+
+### Step 5: Configure Password Change at First Logon
+
+```powershell
 Set-ADUser -Identity "meera.sharma" -ChangePasswordAtLogon $true
+```
 
+This requires the user to change the temporary password at their next eligible interactive logon.
+
+### Step 6: Enable the Account
+
+```powershell
 Enable-ADAccount -Identity "meera.sharma"
+```
 
+### Step 7: Assign HR Group Membership
+
+```powershell
 Add-ADGroupMember -Identity "HR_Users" -Members "meera.sharma"
 ```
 
-### Verification
-Confirmed:
+### Step 8: Verify the Provisioned Account
+
+```powershell
+Get-ADUser -Identity "meera.sharma" -Properties Department, Enabled |
+Select-Object Name, SamAccountName, UserPrincipalName, Department, Enabled, DistinguishedName
+```
+
+Verify group membership.
+
+```powershell
+Get-ADPrincipalGroupMembership -Identity "meera.sharma" |
+Select-Object Name, GroupScope, GroupCategory
+```
+
+### Expected Final State
+
 - Correct username and UPN.
-- Correct HR OU placement.
+- Department set to HR.
+- Account located in the HR OU.
 - Account enabled.
 - HR_Users membership assigned.
+- Domain Users membership retained.
 
-## 2. Mover Process – Department Transfer
+### Evidence
 
-### Scenario
-Meera Sharma transfers from HR to Finance.
+![Joiner verification](Screenshots/01-joiner-verification.png)
 
-### Approved changes
-- Department: HR → Finance
-- OU: HR → Finance
-- Group membership: HR_Users → Finance_Read
-- Account remains enabled.
+---
 
-### Tasks performed
-- Inspected existing user attributes.
-- Updated the Department attribute.
-- Moved the user from HR OU to Finance OU.
-- Added the user to Finance_Read.
-- Removed obsolete HR_Users membership.
-- Verified final account attributes and group memberships.
+## 4. Mover – Department Transfer and Access Modification
 
-### PowerShell commands
+### Business Scenario
+
+Meera Sharma transfers from the HR department to Finance.
+
+The approved lab scenario requires the administrator to update the department attribute, move the user to the Finance OU, grant the approved Finance_Read group membership, and remove obsolete HR_Users membership.
+
+### Required Changes
+
+| Attribute | Before | After |
+|---|---|---|
+| Department | HR | Finance |
+| OU | HR | Finance |
+| HR_Users | Member | Removed |
+| Finance_Read | Not a member | Member |
+| Account Status | Enabled | Enabled |
+
+### Step 1: Inspect Existing User Attributes
+
+```powershell
+Get-ADUser -Identity "meera.sharma" -Properties Department, Title |
+Select-Object Name, SamAccountName, Department, Title, DistinguishedName
+```
+
+### Step 2: Inspect Existing Group Memberships
+
+```powershell
+Get-ADPrincipalGroupMembership -Identity "meera.sharma" |
+Select-Object Name, GroupScope, GroupCategory
+```
+
+### Step 3: Update Department
 
 ```powershell
 Set-ADUser -Identity "meera.sharma" -Department "Finance"
+```
 
+**Important:** Updating the Department attribute does not move the user to another OU or automatically grant new access.
+
+### Step 4: Move the User to Finance OU
+
+```powershell
 Get-ADUser -Identity "meera.sharma" |
 Move-ADObject -TargetPath "OU=Finance,DC=corp,DC=example,DC=com"
+```
 
+### Step 5: Grant Finance Group Access
+
+```powershell
 Add-ADGroupMember -Identity "Finance_Read" -Members "meera.sharma"
+```
 
+This grants the group membership defined by the approved lab scenario.
+
+### Step 6: Remove Obsolete HR Access
+
+```powershell
 Remove-ADGroupMember -Identity "HR_Users" `
 -Members "meera.sharma" -Confirm:$true
 ```
 
-### Verification
-Confirmed:
-- Department = Finance.
-- OU = Finance.
-- Finance_Read membership assigned.
-- HR_Users membership removed.
-- Domain Users membership retained.
-- Account remained enabled.
+The confirmation prompt provides an additional opportunity to verify the intended access change before execution.
 
-## 3. Leaver Process – Employee Offboarding
-
-### Scenario
-A test employee, Leaver Test, leaves the organisation.
-
-### Tasks performed
-- Created a disposable test account.
-- Assigned HR department attributes.
-- Added the account to HR_Users.
-- Disabled the account.
-- Inspected existing group memberships.
-- Removed HR_Users membership.
-- Retained Domain Users membership.
-- Verified account status and remaining access.
-
-### PowerShell commands
+### Step 7: Verify Final State
 
 ```powershell
-Disable-ADAccount -Identity "leaver.test"
-
-Get-ADUser -Identity "leaver.test" -Properties Enabled
-
-Remove-ADGroupMember -Identity "HR_Users" `
--Members "leaver.test" -Confirm:$true
-
-Get-ADPrincipalGroupMembership -Identity "leaver.test"
+Get-ADUser -Identity "meera.sharma" -Properties Department, Enabled |
+Select-Object Name, SamAccountName, Department, Enabled, DistinguishedName
 ```
-
-### Verification
-Confirmed:
-- Account still exists.
-- Enabled = False.
-- HR_Users membership removed.
-- Domain Users membership retained.
-- Original AD object information preserved.
-
-## 4. Password Management
-
-### Scenario
-A user requests an administrative password reset.
-
-### Tasks performed
-- Collected a temporary password securely.
-- Reset the user's password.
-- Verified PasswordLastSet.
-- Checked PasswordExpired.
-- Confirmed password reset did not automatically enable a disabled account.
-
-### PowerShell commands
 
 ```powershell
-$NewPassword = Read-Host "Enter new password" -AsSecureString
-
-Set-ADAccountPassword -Identity "leaver.test" `
--NewPassword $NewPassword -Reset
-
-Get-ADUser -Identity "leaver.test" `
--Properties PasswordLastSet, PasswordExpired, Enabled
+Get-ADPrincipalGroupMembership -Identity "meera.sharma" |
+Select-Object Name, GroupScope, GroupCategory
 ```
 
-## 5. Account Lockout and Unlock Troubleshooting
+### Final Verification
 
-### Scenario
-A domain user experiences account lockout after repeated failed authentication attempts.
-
-### Initial domain policy
-
-| Setting | Original value |
+| Check | Expected Result |
 |---|---|
-| LockoutThreshold | 0 |
-| LockoutDuration | 30 minutes |
-| LockoutObservationWindow | 30 minutes |
+| Department | Finance |
+| OU | Finance |
+| Finance_Read | Member |
+| HR_Users | Removed |
+| Domain Users | Retained |
+| Enabled | True |
 
-### Lab procedure
+### Evidence
 
-1. Inspected the original domain password policy.
-2. Saved the original policy in a PowerShell variable.
-3. Temporarily changed LockoutThreshold to 3.
-4. Generated three controlled failed authentication attempts using unlock.test from WIN10-CLIENT.
-5. Monitored BadPwdCount on DC01.
-6. Confirmed LockedOut = True.
-7. Restarted WIN10-CLIENT and observed that login was rejected.
-8. Executed Unlock-ADAccount.
-9. Verified LockedOut = False and BadPwdCount = 0.
-10. Restored the original LockoutThreshold of 0.
-
-### PowerShell commands
-
-```powershell
-Get-ADDefaultDomainPasswordPolicy
-
-Set-ADDefaultDomainPasswordPolicy `
--Identity "corp.example.com" `
--LockoutThreshold 3
-
-Get-ADUser -Identity "unlock.test" `
--Properties BadPwdCount, LockedOut, Enabled
-
-Unlock-ADAccount -Identity "unlock.test"
-
-Get-ADUser -Identity "unlock.test" `
--Properties BadPwdCount, LockedOut, Enabled
-
-Set-ADDefaultDomainPasswordPolicy `
--Identity "corp.example.com" `
--LockoutThreshold 0
-```
-
-### Verification
-
-| Property | Before unlock | After unlock |
-|---|---|---|
-| Enabled | True | True |
-| LockedOut | True | False |
-| BadPwdCount | 3 | 0 |
-
-The original domain lockout policy was successfully restored.
-
-## 6. Important PowerShell Commands Learned
-
-| Command | Purpose |
-|---|---|
-| Get-ADUser | Retrieve user information |
-| New-ADUser | Create user accounts |
-| Set-ADUser | Modify user attributes |
-| Move-ADObject | Move AD objects |
-| Enable-ADAccount | Enable accounts |
-| Disable-ADAccount | Disable accounts |
-| Add-ADGroupMember | Grant group membership |
-| Remove-ADGroupMember | Revoke group membership |
-| Get-ADPrincipalGroupMembership | Inspect user group memberships |
-| Set-ADAccountPassword | Reset passwords |
-| Unlock-ADAccount | Unlock accounts |
-| Get-ADDefaultDomainPasswordPolicy | Inspect domain password policy |
-| Set-ADDefaultDomainPasswordPolicy | Modify domain password policy |
-
-## 7. IAM Concepts Demonstrated
-
-- Identity lifecycle management (Joiner-Mover-Leaver).
-- Active Directory user administration.
-- Organizational Unit management.
-- Role and group-based access management.
-- Least privilege and access revocation.
-- Password reset procedures.
-- Account enablement and disabling.
-- Account lockout investigation.
-- PowerShell-based IAM administration.
-- Verification and troubleshooting.
-
-## 8. Security and Lab Considerations
-
-- All operations were performed in an isolated VirtualBox lab.
-- Disposable accounts were used for testing.
-- Passwords were collected using SecureString rather than hardcoded in commands.
-- Group membership changes were verified after execution.
-- Domain-wide lockout policy changes were temporary and restored after testing.
-- No production accounts or systems were involved.
-
+![Mover verification](Screenshots/02-mover-verification.png)
 
 ---
 
-**Project type:** Hands-on IAM Lab  
-**Technology:** Active Directory, PowerShell, Windows Server, Windows 10, VirtualBox  
-**Status:** Manual JML and account management exercises completed.
+## 5. Leaver – Employee Offboarding
+
+### Business Scenario
+
+An employee named Leaver Test leaves the organisation.
+
+A separate disposable account is used to demonstrate the offboarding process without affecting existing lab users.
+
+### Offboarding Requirements
+
+- Disable the AD account.
+- Revoke the employee's HR group membership.
+- Retain the AD object for audit and retention handling.
+- Verify that the account remains disabled.
+- Verify that the obsolete group membership is removed.
+
+### Step 1: Create a Disposable Test Account
+
+```powershell
+$Password = Read-Host "Enter temporary password" -AsSecureString
+```
+
+```powershell
+New-ADUser `
+-Name "Leaver Test" `
+-SamAccountName "leaver.test" `
+-UserPrincipalName "leaver.test@corp.example.com" `
+-Path "OU=HR,DC=corp,DC=example,DC=com" `
+-Department "HR" `
+-AccountPassword $Password `
+-Enabled $true
+```
+
+### Step 2: Assign Initial HR Group Access
+
+```powershell
+Add-ADGroupMember -Identity "HR_Users" -Members "leaver.test"
+```
+
+Verify initial membership.
+
+```powershell
+Get-ADPrincipalGroupMembership -Identity "leaver.test" |
+Select-Object Name, GroupScope, GroupCategory
+```
+
+### Step 3: Disable the Account
+
+```powershell
+Disable-ADAccount -Identity "leaver.test"
+```
+
+Disabling prevents normal account authentication while preserving the AD object.
+
+### Step 4: Inspect Group Membership
+
+```powershell
+Get-ADPrincipalGroupMembership -Identity "leaver.test" |
+Select-Object Name, GroupScope, GroupCategory
+```
+
+Disabling an account does not automatically remove its group memberships.
+
+### Step 5: Revoke HR Access
+
+```powershell
+Remove-ADGroupMember -Identity "HR_Users" `
+-Members "leaver.test" -Confirm:$true
+```
+
+### Step 6: Verify Offboarding
+
+```powershell
+Get-ADUser -Identity "leaver.test" -Properties Department, Enabled |
+Select-Object Name, SamAccountName, Department, Enabled, DistinguishedName
+```
+
+```powershell
