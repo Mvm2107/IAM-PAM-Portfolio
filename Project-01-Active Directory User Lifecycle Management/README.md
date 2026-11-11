@@ -408,3 +408,320 @@ Select-Object Name, SamAccountName, Department, Enabled, DistinguishedName
 ```
 
 ```powershell
+Get-ADPrincipalGroupMembership -Identity "leaver.test" |
+Select-Object Name, GroupScope, GroupCategory
+```
+
+### Final Verification
+
+| Check | Result |
+|---|---|
+| AD object exists | Yes |
+| Account Enabled | False |
+| Department | HR |
+| OU | HR |
+| HR_Users | Removed |
+| Domain Users | Retained |
+
+### Evidence
+
+![Leaver test account](Screenshots/03-leaver-test-account.png)
+
+![Leaver disabled](Screenshots/04-leaver-disabled.png)
+
+![Leaver group removal](Screenshots/05-leaver-group-revoke.png)
+
+---
+
+## 6. Password Management – Administrative Password Reset
+
+### Business Scenario
+
+A user forgets their password and requests assistance from the IAM/helpdesk team.
+
+The administrator performs an approved password reset.
+
+### Step 1: Collect a New Password Securely
+
+```powershell
+$NewPassword = Read-Host "Enter new temporary password" -AsSecureString
+```
+
+### Step 2: Reset the Password
+
+```powershell
+Set-ADAccountPassword -Identity "leaver.test" `
+-NewPassword $NewPassword -Reset
+```
+
+The `-Reset` parameter indicates an administrative password reset without requiring the user's existing password.
+
+### Step 3: Verify Password Information
+
+```powershell
+Get-ADUser -Identity "leaver.test" `
+-Properties PasswordLastSet, PasswordExpired, Enabled |
+Select-Object Name, PasswordLastSet, PasswordExpired, Enabled
+```
+
+### Important Observations
+
+- PasswordLastSet records when the password was last changed.
+- PasswordExpired indicates whether AD considers the password expired.
+- Resetting a password does not automatically enable a disabled account.
+- Resetting a password does not automatically clear account lockout.
+
+### Evidence
+
+![Password reset verification](Screenshots/06-password-reset.png)
+
+---
+
+## 7. Account Lockout and Unlock Troubleshooting
+
+### Business Scenario
+
+A domain user repeatedly enters an incorrect password and becomes locked out.
+
+The IAM administrator investigates the lockout policy, confirms the account state, unlocks the user, and verifies successful restoration.
+
+### Initial Domain Password Policy
+
+The original policy was inspected using:
+
+```powershell
+Get-ADDefaultDomainPasswordPolicy
+```
+
+Relevant settings:
+
+| Setting | Original Value |
+|---|---|
+| LockoutThreshold | 0 |
+| LockoutDuration | 30 minutes |
+| LockoutObservationWindow | 30 minutes |
+| MinPasswordLength | 7 |
+| ComplexityEnabled | True |
+| PasswordHistoryCount | 24 |
+
+A threshold of zero means automatic account lockout is disabled.
+
+### Step 1: Save the Original Policy
+
+```powershell
+$OriginalPolicy = Get-ADDefaultDomainPasswordPolicy
+
+$OriginalPolicy |
+Select-Object LockoutThreshold, LockoutDuration, LockoutObservationWindow
+```
+
+### Step 2: Temporarily Enable Account Lockout
+
+```powershell
+Set-ADDefaultDomainPasswordPolicy `
+-Identity "corp.example.com" `
+-LockoutThreshold 3
+```
+
+The threshold was temporarily set to three failed authentication attempts for the isolated lab exercise.
+
+**Security consideration:** This is a domain-wide setting. It was changed only for the controlled lab test and restored immediately after the exercise.
+
+### Step 3: Verify the Test Account
+
+A disposable account named `unlock.test` was used.
+
+```powershell
+Get-ADUser -Identity "unlock.test" `
+-Properties Enabled, LockedOut, BadPwdCount |
+Select-Object Name, Enabled, LockedOut, BadPwdCount
+```
+
+Initial state:
+
+- Enabled = True
+- LockedOut = False
+
+### Step 4: Generate Controlled Failed Authentication Attempts
+
+From WIN10-CLIENT, authenticate using the test account:
+
+```powershell
+runas /user:CORP\unlock.test cmd
+```
+
+Three incorrect password attempts were submitted individually.
+
+After each attempt, the account was inspected on DC01.
+
+```powershell
+Get-ADUser -Identity "unlock.test" `
+-Properties BadPwdCount, LockedOut |
+Select-Object SamAccountName, BadPwdCount, LockedOut
+```
+
+The failed password counter increased:
+
+| Attempt | BadPwdCount | LockedOut |
+|---|---:|---|
+| First | 1 | False |
+| Second | 2 | False |
+| Third | 3 | True |
+
+### Step 5: Confirm the Lockout
+
+The Windows client was restarted and an interactive domain login was attempted.
+
+Windows displayed:
+
+"The referenced account is currently locked out and may not be logged on to."
+
+This demonstrated that restarting the client does not clear a domain account lockout.
+
+### Step 6: Unlock the Account
+
+On DC01:
+
+```powershell
+Unlock-ADAccount -Identity "unlock.test"
+```
+
+### Step 7: Verify the Unlock
+
+```powershell
+Get-ADUser -Identity "unlock.test" `
+-Properties Enabled, LockedOut, BadPwdCount |
+Select-Object Name, Enabled, LockedOut, BadPwdCount
+```
+
+Verified result:
+
+| Property | Before Unlock | After Unlock |
+|---|---|---|
+| Enabled | True | True |
+| LockedOut | True | False |
+| BadPwdCount | 3 | 0 |
+
+### Step 8: Restore the Original Domain Policy
+
+```powershell
+Set-ADDefaultDomainPasswordPolicy `
+-Identity "corp.example.com" `
+-LockoutThreshold $OriginalPolicy.LockoutThreshold
+```
+
+Verify:
+
+```powershell
+Get-ADDefaultDomainPasswordPolicy |
+Select-Object LockoutThreshold, LockoutDuration, LockoutObservationWindow
+```
+
+The original threshold of zero was successfully restored.
+
+### Evidence
+
+![Default domain policy](Screenshots/07-default-policy.png)
+
+![Locked account](Screenshots/08-locked-account.png)
+
+![Unlocked account](Screenshots/09-unlocked-account.png)
+
+![Restored policy](Screenshots/10-policy-restored.png)
+
+---
+
+## 8. PowerShell Command Reference
+
+| Cmdlet | IAM Operation |
+|---|---|
+| Get-ADUser | Retrieve user details |
+| New-ADUser | Create user |
+| Set-ADUser | Modify user attributes |
+| Move-ADObject | Move an AD object |
+| Enable-ADAccount | Enable account |
+| Disable-ADAccount | Disable account |
+| Add-ADGroupMember | Grant group membership |
+| Remove-ADGroupMember | Revoke group membership |
+| Get-ADPrincipalGroupMembership | Inspect group memberships |
+| Get-ADGroupMember | List group members |
+| Set-ADAccountPassword | Reset account password |
+| Unlock-ADAccount | Unlock a locked account |
+| Get-ADDefaultDomainPasswordPolicy | Inspect password and lockout policy |
+| Set-ADDefaultDomainPasswordPolicy | Modify domain password policy |
+
+---
+
+## 9. Key IAM Concepts Demonstrated
+
+### Identity Lifecycle Management
+
+Implemented the Joiner-Mover-Leaver process using Active Directory.
+
+### Role-Based Access Management
+
+Used security group membership to assign and revoke department-related access.
+
+### Least Privilege
+
+Removed obsolete group membership during department transfers and offboarding rather than retaining unnecessary access.
+
+### Account Security
+
+Demonstrated account disabling, password reset, account lockout and unlocking.
+
+### Troubleshooting
+
+Investigated:
+- Incorrect PowerShell parameters.
+- Invalid AD object naming.
+- Password complexity rejection.
+- Existing account conflicts.
+- Missing AD attributes in default query output.
+- Account lockout policy behaviour.
+
+### Verification
+
+Used AD queries and client-side authentication tests to validate changes rather than relying only on command success messages.
+
+---
+
+## 10. Security Considerations
+
+- All work was performed in an isolated VirtualBox lab.
+- Disposable accounts were used for testing.
+- Passwords were collected interactively using SecureString.
+- No plaintext passwords or credentials are included in this repository.
+- Group changes were verified after execution.
+- Domain-wide policy changes were temporary and restored.
+- No production accounts or infrastructure were involved.
+- Real-world provisioning and offboarding require authorised requests, approvals, effective dates, and audit records.
+
+---
+
+## 11. Limitations and Future Improvements
+
+This project focused on manual administration to understand the individual PowerShell cmdlets and their behaviour.
+
+The following enhancements are planned:
+
+1. CSV-based bulk user provisioning.
+2. Automated Joiner-Mover-Leaver scripts.
+3. Active Directory access review and reporting.
+4. Error handling and execution logging.
+5. Microsoft Entra ID administration using Microsoft Graph.
+6. Integration with enterprise IAM/PAM workflows.
+
+---
+
+## 12. Project Summary
+
+This project provided practical experience in Active Directory identity administration using PowerShell.
+
+The implementation covered user provisioning, department transfers, access revocation, employee offboarding, password reset, account lockout troubleshooting, and policy restoration.
+
+**Project Type:** Hands-on IAM Administration Lab
+
+**Environment:** Windows Server, Windows 10 Pro, Active Directory Domain Services, PowerShell, VirtualBox
+
+**Implementation Status:** Manual identity lifecycle and account management exercises completed.
