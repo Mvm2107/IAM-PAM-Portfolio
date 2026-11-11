@@ -271,14 +271,6 @@ The original domain lockout policy was successfully restored.
 - Domain-wide lockout policy changes were temporary and restored after testing.
 - No production accounts or systems were involved.
 
-## 9. Future Improvements
-
-- CSV-based bulk user provisioning.
-- Automated Joiner-Mover-Leaver workflows.
-- Automated Active Directory access review reports.
-- Error handling and PowerShell logging.
-- Microsoft Entra ID administration using Microsoft Graph.
-- Integration with IAM/PAM platforms.
 
 ---
 
