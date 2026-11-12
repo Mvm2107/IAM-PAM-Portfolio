@@ -1,0 +1,6 @@
+FirstName,LastName,Username,UPN,Department,OU,Group
+Naveen,Kumar,naveen.kumar,naveen.kumar@corp.example.com,HR,"OU=HR,DC=corp,DC=example,DC=com",HR_Users
+Divya,Raj,divya.raj,divya.raj@corp.example.com,Finance,"OU=Finance,DC=corp,DC=example,DC=com",Finance_Read
+Sanjay,Kumar,sanjay.kumar,sanjay.kumar@corp.example.com,IT,"OU=IT,DC=corp,DC=example,DC=com",IT_Support
+Priya,Anand,priya.anand,priya.anand@corp.example.com,HR,"OU=HR,DC=corp,DC=example,DC=com",HR_Users
+Kiran,Raj,kiran.raj,kiran.raj@corp.example.com,Finance,"OU=Finance,DC=corp,DC=example,DC=com",Finance_Read
