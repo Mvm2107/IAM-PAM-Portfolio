@@ -54,7 +54,20 @@ if ($MissingColumns) {
     return
 }
 
+# Validate duplicate usernames within CSV
+$DuplicateUsernames = $Users |
+    Group-Object -Property Username |
+    Where-Object { $_.Count -gt 1 }
 
+if ($DuplicateUsernames) {
+    Write-Host "Duplicate usernames found in CSV:" -ForegroundColor Red
+
+    $DuplicateUsernames | ForEach-Object {
+        Write-Host $_.Name -ForegroundColor Red
+    }
+
+    return
+}
 
 # Validate individual employee records
 foreach ($User in $Users) {
@@ -87,6 +100,25 @@ foreach ($User in $Users) {
     }
 }
 
+# Validate AD Organizational Units and Security Groups
+foreach ($User in $Users) {
+
+    try {
+        Get-ADOrganizationalUnit -Identity $User.OU -ErrorAction Stop |
+            Out-Null
+
+        Get-ADGroup -Identity $User.Group -ErrorAction Stop |
+            Out-Null
+
+        Write-Host "$($User.Username) - OU and Group exist" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Invalid AD configuration for $($User.Username)" -ForegroundColor Red
+        Write-Host $_.Exception.Message
+        return
+    }
+}
+
 Write-Host "Successfully imported $($Users.Count) employee records." -ForegroundColor Green
 
 # Collect temporary password securely
@@ -95,7 +127,7 @@ $Password = Read-Host "Enter temporary password" -AsSecureString
 
 # Process each employee record
 foreach ($User in $Users) {
-
+    $Stage = "Duplicate account check"
     try {
 
         # Check whether the account already exists
@@ -105,42 +137,45 @@ foreach ($User in $Users) {
             Write-Host "$($User.Username) already exists. Skipping." -ForegroundColor Yellow
             continue
         }
-    else {
-
-    # Create AD user account
-    New-ADUser `
-        -Name "$($User.FirstName) $($User.LastName)" `
-        -GivenName $User.FirstName `
-        -Surname $User.LastName `
-        -SamAccountName $User.Username `
-        -UserPrincipalName $User.UPN `
-        -Department $User.Department `
-        -Path $User.OU `
-        -AccountPassword $Password `
-        -ChangePasswordAtLogon $true `
-        -Enabled $false `
-        -ErrorAction Stop
+        else {
+        $Stage = "Account creation"
+        # Create AD user account
+        New-ADUser `
+            -Name "$($User.FirstName) $($User.LastName)" `
+            -GivenName $User.FirstName `
+            -Surname $User.LastName `
+            -SamAccountName $User.Username `
+            -UserPrincipalName $User.UPN `
+            -Department $User.Department `
+            -Path $User.OU `
+            -AccountPassword $Password `
+            -ChangePasswordAtLogon $true `
+            -Enabled $false `
+            -ErrorAction Stop
     
-    # Assign department security group
-    Add-ADGroupMember `
-        -Identity $User.Group `
-        -Members $User.Username `
-        -ErrorAction Stop
-
-    # Enable the AD account
-    Enable-ADAccount `
-        -Identity $User.Username `
-        -ErrorAction Stop
-
-    # Display success message
-    Write-Host "$($User.Username) provisioned successfully." -ForegroundColor Green
-      
-         }
+        $Stage = "Group assignment"
+        # Assign department security group
+        Add-ADGroupMember `
+            -Identity $User.Group `
+            -Members $User.Username `
+            -ErrorAction Stop
+            
+       $Stage = "Account enablement"
+        # Enable the AD account
+        Enable-ADAccount `
+            -Identity $User.Username `
+            -ErrorAction Stop
     
-    }
+        # Display success message
+        Write-Host "$($User.Username) provisioned successfully." -ForegroundColor Green
+          
+            }
+    
+      }
     catch {
         Write-Host "Provisioning failed for $($User.Username)" -ForegroundColor Red
+        Write-Host "Failed stage: $Stage" -ForegroundColor Yellow
         Write-Host $_.Exception.Message
         continue
-    }
+         }
 }
