@@ -98,16 +98,4 @@ Successfully updated the employee's attributes and verified the changes through 
 - Avoid unnecessary changes to employee identifiers.
 - Maintain audit evidence for administrative operations.
 
-## Evidence
-
-Add screenshots showing:
-
-1. Edit properties interface.
-2. Updated employee properties.
-3. Update user audit event.
-4. Target user details.
-5. Modified Properties showing old and new values.
-
-**Change Request:** CR-1001
-
 **Status:** Completed
