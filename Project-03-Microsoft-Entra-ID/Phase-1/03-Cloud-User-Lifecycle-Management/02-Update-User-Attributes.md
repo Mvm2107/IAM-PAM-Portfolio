@@ -1,4 +1,4 @@
-# Module-03 – Cloud-User-Lifecycle-Management
+# Exercise-02 – Update-User-Attributes
 
 ## Objective
 Update employee attributes in Microsoft Entra ID and investigate the changes using Audit Logs.
