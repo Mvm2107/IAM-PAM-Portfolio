@@ -1,0 +1,95 @@
+{
+    "schema_version": 1,
+    "initialized": true,
+    "last_successful_sync": "2026-11-26T21:13:36.786883+00:00",
+    "identities": {
+        "EMP001": {
+            "employee_id": "EMP001",
+            "first_name": "Arun",
+            "last_name": "Kumar",
+            "department": "Engineering",
+            "job_title": "Software Engineer",
+            "manager_id": "EMP010",
+            "employment_status": "Active",
+            "location": "Chennai",
+            "join_date": "2026-11-26"
+        },
+        "EMP002": {
+            "employee_id": "EMP002",
+            "first_name": "Ravi",
+            "last_name": "Shankar",
+            "department": "Finance",
+            "job_title": "Finance Analyst",
+            "manager_id": "EMP020",
+            "employment_status": "Active",
+            "location": "Bangalore",
+            "join_date": "2026-10-15"
+        },
+        "EMP003": {
+            "employee_id": "EMP003",
+            "first_name": "Priya",
+            "last_name": "Devi",
+            "department": "HR",
+            "job_title": "HR Executive",
+            "manager_id": "EMP030",
+            "employment_status": "Active",
+            "location": "Chennai",
+            "join_date": "2026-09-01"
+        },
+        "EMP004": {
+            "employee_id": "EMP004",
+            "first_name": "Karthik",
+            "last_name": "Rajan",
+            "department": "Sales",
+            "job_title": "Sales Executive",
+            "manager_id": "EMP040",
+            "employment_status": "Active",
+            "location": "Coimbatore",
+            "join_date": "2026-08-12"
+        },
+        "EMP005": {
+            "employee_id": "EMP005",
+            "first_name": "Meena",
+            "last_name": "Devi",
+            "department": "IT",
+            "job_title": "System Administrator",
+            "manager_id": "EMP050",
+            "employment_status": "Active",
+            "location": "Bangalore",
+            "join_date": "2026-07-20"
+        },
+        "EMP006": {
+            "employee_id": "EMP006",
+            "first_name": "Suresh",
+            "last_name": "Kumar",
+            "department": "Finance",
+            "job_title": "Finance Manager",
+            "manager_id": "EMP020",
+            "employment_status": "Active",
+            "location": "Chennai",
+            "join_date": "2026-06-10"
+        },
+        "EMP007": {
+            "employee_id": "EMP007",
+            "first_name": "Anitha",
+            "last_name": "Raj",
+            "department": "Engineering",
+            "job_title": "DevOps Engineer",
+            "manager_id": "EMP010",
+            "employment_status": "Active",
+            "location": "Bangalore",
+            "join_date": "2026-11-01"
+        },
+        "EMP008": {
+            "employee_id": "EMP008",
+            "first_name": "Vijay",
+            "last_name": "Anand",
+            "department": "Sales",
+            "job_title": "Sales Manager",
+            "manager_id": "EMP040",
+            "employment_status": "Active",
+            "location": "Chennai",
+            "join_date": "2026-05-15"
+        }
+    }
+}

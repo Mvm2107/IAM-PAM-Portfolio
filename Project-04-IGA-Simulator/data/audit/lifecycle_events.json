@@ -1,0 +1,40 @@
+{
+    "schema_version": 1,
+    "events": [
+        {
+            "employee_id": "EMP001",
+            "event_type": "MOVER",
+            "reason": "Employment attributes changed",
+            "changes": {
+                "department": {
+                    "old": "Engineering",
+                    "new": "Finance"
+                },
+                "job_title": {
+                    "old": "Software Engineer",
+                    "new": "Finance Analyst"
+                },
+                "manager_id": {
+                    "old": "EMP010",
+                    "new": "EMP020"
+                }
+            },
+            "event_id": "8e24e5237d69ab48c2488a6f78679dd3c43bdd509e88cf472402b77a66d23a46",
+            "detected_at": "2026-11-26T21:04:12.618133+00:00"
+        },
+        {
+            "employee_id": "EMP001",
+            "event_type": "LEAVER",
+            "reason": "Employment terminated",
+            "event_id": "e7226584c35dbcf3649262a572471e405a26521f255a1ccb8cb1ddc63e067f79",
+            "detected_at": "2026-11-26T21:10:54.816245+00:00"
+        },
+        {
+            "employee_id": "EMP001",
+            "event_type": "JOINER",
+            "reason": "Previously terminated employee reactivated",
+            "event_id": "0cdd02aa160509fc8cab7ee7692e5993a977db0fbdd7b6ef7ffcafcdc6e4f509",
+            "detected_at": "2026-11-26T21:13:36.785886+00:00"
+        }
+    ]
+}

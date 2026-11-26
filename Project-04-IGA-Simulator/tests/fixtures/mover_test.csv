@@ -1,0 +1,2 @@
+employee_id,first_name,last_name,department,job_title,manager_id,employment_status,location,join_date
+EMP001,Arun,Kumar,Finance,Finance Analyst,EMP020,Active,Chennai,2026-11-26

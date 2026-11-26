@@ -1,0 +1,3 @@
+employee_id,first_name,last_name,department,job_title,manager_id,employment_status,location,join_date
+EMP009,Arun,Kumar,Engineering,Software Engineer,EMP010,Active,Chennai,2026-11-26
+EMP009,Ravi,Shankar,Finance,Finance Analyst,EMP020,Active,Bangalore,2026-11-26
