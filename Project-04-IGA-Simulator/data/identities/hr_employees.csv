@@ -1,0 +1,9 @@
+employee_id,first_name,last_name,department,job_title,manager_id,employment_status,location,join_date
+EMP001,Arun,Kumar,Engineering,Software Engineer,EMP010,Active,Chennai,2026-11-26
+EMP002,Ravi,Shankar,Finance,Finance Analyst,EMP020,Active,Bangalore,2026-10-15
+EMP003,Priya,Devi,HR,HR Executive,EMP030,Active,Chennai,2026-09-01
+EMP004,Karthik,Rajan,Sales,Sales Executive,EMP040,Active,Coimbatore,2026-08-12
+EMP005,Meena,Devi,IT,System Administrator,EMP050,Active,Bangalore,2026-07-20
+EMP006,Suresh,Kumar,Finance,Finance Manager,EMP020,Active,Chennai,2026-06-10
+EMP007,Anitha,Raj,Engineering,DevOps Engineer,EMP010,Active,Bangalore,2026-11-01
+EMP008,Vijay,Anand,Sales,Sales Manager,EMP040,Active,Chennai,2026-05-15
