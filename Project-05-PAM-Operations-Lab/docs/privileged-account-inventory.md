@@ -396,3 +396,70 @@ No accounts, passwords, group memberships or permissions were modified during th
 **Phase:** Phase 2 – Privileged Account Discovery  
 **Environment:** Active Directory, Windows Client and Ubuntu Linux  
 **Status:** Discovery completed; evidence screenshots pending upload.
+
+
+
+## Phase 3 – Updated Privileged Account Inventory
+
+### 1. Active Directory Privileged Groups
+
+The following direct memberships were verified on DC01.
+
+| Group | Scope | Category | Direct Member |
+|---|---|---|---|
+| Domain Admins | Global | Security | Administrator |
+| Enterprise Admins | Universal | Security | Administrator |
+| Administrators | Domain Local | Security | Administrator |
+
+No domain-level privileged group memberships were modified during Phase 3.
+
+### 2. WIN10-CLIENT Local Administrators
+
+**Initial membership:**
+
+| Account | Source |
+|---|---|
+| CORP\Domain Admins | Active Directory |
+| DESKTOP-SD075Q6\Administrator | Local |
+| DESKTOP-SD075Q6\LabAdmin | Local |
+
+**Final membership after Phase 3:**
+
+| Account | Source | Status |
+|---|---|---|
+| DESKTOP-SD075Q6\Administrator | Local | Retained |
+| DESKTOP-SD075Q6\LabAdmin | Local | Retained |
+| DESKTOP-SD075Q6\PAM-Recovery | Local | Created and retained |
+| CORP\Domain Admins | Active Directory | Removed |
+
+### 3. Standard Domain User
+
+| Account | Group Membership | Validation |
+|---|---|---|
+| unlock.test | Domain Users | Standard-user access confirmed |
+
+The account successfully authenticated to WIN10-CLIENT. The `net session` command returned System error 5 – Access is denied, both before and after the least-privilege change.
+
+### 4. Recovery Administrator
+
+| Property | Value |
+|---|---|
+| Account | PAM-Recovery |
+| Account type | Local |
+| Enabled | Yes |
+| Group membership | Local Administrators |
+| Purpose | Dedicated PAM lab recovery administrator |
+| Interactive login | Verified |
+| Elevated administrative access | Verified |
+
+Windows UAC token filtering was observed during the initial non-elevated session. Administrative access was successfully verified after opening PowerShell with Run as administrator.
+
+### 5. Inventory Assessment Notes
+
+- Domain Admins no longer has local administrator access through direct membership on WIN10-CLIENT.
+- Domain-level privileges remain unchanged.
+- LabAdmin remains enabled and requires ownership and purpose verification.
+- The built-in Administrator account remains a member of the inspected AD privileged groups.
+- PAM-Recovery provides a tested local administrative recovery path.
+
+**Assessment scope:** DC01 Active Directory privileged groups and WIN10-CLIENT local privileged accounts.
