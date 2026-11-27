@@ -625,3 +625,78 @@ The completed work establishes the technical baseline for subsequent privileged 
 **Document:** Implementation  
 **Phase:** Phase 1 – Environment Verification and Phase 2 – Privileged Account Discovery  
 **Status:** Discovery implementation completed; access-control and monitoring activities pending.
+
+
+## Phase 3 – Privileged Access Control
+
+### Objective
+Review privileged access on the Windows 10 domain-joined workstation and demonstrate least-privilege access management.
+
+### 1. Initial privileged access review
+
+Inspected the local Administrators group on WIN10-CLIENT.
+
+Initial membership:
+- CORP\Domain Admins
+- DESKTOP-SD075Q6\Administrator
+- DESKTOP-SD075Q6\LabAdmin
+
+The Domain Admins group provided workstation administrator access through its membership in the local Administrators group.
+
+### 2. Standard-user validation
+
+Selected the existing domain account `unlock.test` for the standard-user test.
+
+Verified:
+- Domain authentication was successful.
+- No enabled local Administrators membership appeared in the user's session.
+- The `net session` command returned System error 5 – Access is denied.
+
+### 3. Recovery administrator account
+
+Created a dedicated local account:
+- Account: PAM-Recovery
+- Purpose: Local administrative recovery for the PAM lab.
+- Added to the local Administrators group.
+
+Tested the account through an interactive login.
+
+The initial non-elevated PowerShell session showed the Administrators group as deny-only due to Windows UAC token filtering.
+
+After opening PowerShell with Run as administrator:
+- The Administrators group was enabled.
+- `net session` completed successfully.
+
+### 4. Least-privilege implementation
+
+Removed `CORP\Domain Admins` from the local Administrators group on WIN10-CLIENT.
+
+No changes were made to Domain Admins membership on the domain controller.
+
+Final local Administrators membership:
+- DESKTOP-SD075Q6\Administrator
+- DESKTOP-SD075Q6\LabAdmin
+- DESKTOP-SD075Q6\PAM-Recovery
+
+### 5. Post-change validation
+
+Retested the `unlock.test` account after the membership change.
+
+Results:
+- Domain authentication successful.
+- No enabled local Administrators membership appeared.
+- `net session` returned System error 5 – Access is denied.
+
+Verified that PAM-Recovery retained local administrative access after the change.
+
+### Outcome
+
+Successfully demonstrated:
+- Privileged group membership inspection.
+- Standard-user versus administrator access comparison.
+- Windows UAC administrator token filtering.
+- Creation and validation of a local recovery administrator.
+- Removal of unnecessary domain administrator access from a workstation.
+- Post-change access validation.
+
+All changes were limited to the WIN10-CLIENT lab workstation.
