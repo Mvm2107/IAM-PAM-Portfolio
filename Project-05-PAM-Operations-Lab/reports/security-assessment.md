@@ -330,3 +330,70 @@ The next stage will focus on implementing and testing appropriate privileged acc
 **Environment:** Active Directory, Windows 10, Ubuntu Linux and Splunk Enterprise
 
 **Status:** Initial assessment completed; remediation and monitoring activities pending.
+
+## Phase 3 – Privileged Access Security Assessment
+
+### Assessment Scope
+
+Reviewed privileged access on the Windows 10 domain-joined workstation (WIN10-CLIENT) and validated standard-user and administrator access.
+
+### Findings and Remediation
+
+| ID | Finding | Initial Priority | Status |
+|---|---|---|---|
+| PAM-01 | Domain Admins had local administrator access on WIN10-CLIENT | High | Remediated |
+| PAM-02 | Built-in Administrator belonged to multiple privileged AD groups | High | Retained for lab; review required |
+| PAM-03 | LabAdmin was an enabled local administrator with an unclear business purpose | Medium | Pending review |
+| PAM-04 | Dedicated local recovery administrator was initially absent | Medium | Remediated |
+
+### Remediation Details
+
+**PAM-01 – Excessive workstation privileges**
+
+- Identified CORP\Domain Admins in the workstation's local Administrators group.
+- Created and tested a dedicated local recovery account.
+- Removed CORP\Domain Admins from the workstation's local Administrators group.
+- Verified that the recovery account retained administrative access.
+- Retested the standard domain account after the change.
+
+Result: Successful.
+
+**PAM-02 – Built-in Administrator privilege review**
+
+- Identified Administrator in Domain Admins, Enterprise Admins and Administrators.
+- No domain-level group memberships were modified.
+- Further review is recommended to assess the need for these privileges.
+
+**PAM-03 – Local LabAdmin account**
+
+- Confirmed that LabAdmin was enabled and belonged to the local Administrators group.
+- Its ownership and purpose were not established.
+- No changes were made because the account may be used by other lab projects.
+
+**PAM-04 – Recovery administrator**
+
+- Created the local PAM-Recovery account.
+- Added it to the local Administrators group.
+- Verified interactive login and elevated administrative access.
+- Confirmed that administrative access remained available after the least-privilege change.
+
+### Validation Results
+
+| Test | Result |
+|---|---|
+| Standard-user authentication | Successful |
+| Standard-user administrative operation | Access denied |
+| Recovery administrator login | Successful |
+| Recovery administrator elevated operation | Successful |
+| Domain Admins removal from workstation | Successful |
+| Post-change standard-user test | Access denied |
+
+### Conclusion
+
+The assessment demonstrated practical privileged-account discovery, access validation, least-privilege implementation and recovery-account management.
+
+The workstation's local administrative access was reduced without changing domain-level privileged group memberships.
+
+Remaining review items include the built-in Administrator's domain privileges and the ownership and purpose of LabAdmin.
+
+This assessment represents a controlled lab exercise and not a formal enterprise security audit.
